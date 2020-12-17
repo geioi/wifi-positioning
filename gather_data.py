@@ -109,6 +109,8 @@ def addDataToDb(building, location, specified_location, floor, ssid_dict, signal
                 data_place_detail = (cursor.lastrowid, specified_location, ap_id[0], signals_min_dict[item[0]], signals_max_dict[item[0]])
 
         else:
+            if item[1] == None:
+                item[1] = 'Unknown'
             data_ap = (item[0], item[1])
             cursor.execute(add_access_point, data_ap)
             ap_id = cursor.lastrowid
@@ -183,7 +185,7 @@ def initMethod(building, room, floor, roomSize=None, specific_location=None, met
 def leftRightMethod(building, location, floor, packetCount=500, interface=None, side=None):
     command = input('[!] Please move to the ' + side + ' side of the room and press Enter (or type anything and press Enter to exit): ')
     if command == '':
-        captureDataLive(interface, building, location, side + ' side', floor, side + '_side', packetCount)
+        captureDataLive(interface, building, location, side + ' side', floor, location, packetCount)
     else:
         print('Exiting...')
         exit()
@@ -192,7 +194,7 @@ def leftRightMethod(building, location, floor, packetCount=500, interface=None, 
 def NESWMethod(building, location, floor, packetCount=500, interface=None, corner=None):
     command = input('[!] Please move to the ' + corner + ' corner of the room and press Enter (or type anything and press Enter to exit): ')
     if command == '':
-        captureDataLive(interface, building, location, corner + ' corner', floor, corner + '_corner', packetCount)
+        captureDataLive(interface, building, location, corner + ' corner', floor, location, packetCount)
     else:
         print('Exiting...')
         exit()
@@ -200,7 +202,7 @@ def NESWMethod(building, location, floor, packetCount=500, interface=None, corne
 def centerMethod(building, location, floor, packetCount=500, interface=None):
     command = input('[!] Please move to the center of the room and press Enter (or type anything and press Enter to exit): ')
     if command == '':
-        captureDataLive(interface, building, location, 'center', floor, 'center', packetCount)
+        captureDataLive(interface, building, location, 'center', floor, location, packetCount)
     else:
         print('Exiting...')
         exit()
@@ -208,7 +210,7 @@ def centerMethod(building, location, floor, packetCount=500, interface=None):
 def customAreaMethod(building, location, floor, specific_location, packetCount=500, interface=None):
     command = input('[!] Please move to the specified place (' + specific_location + ') in the room and press Enter (or type anything and press Enter to exit): ')
     if command == '':
-        captureDataLive(interface, building, location, specific_location, floor, specific_location.replace(' ', '_'), packetCount)
+        captureDataLive(interface, building, location, specific_location, floor, location.replace(' ', '_'), packetCount)
     else:
         print('Exiting...')
         exit()
@@ -274,24 +276,24 @@ def getRoom(building=None, possible_locations=None, confirm=False, last_choice=N
         return last_choice
     elif room != '' and confirm and room in possible_locations:
         return room
+    if cnx:
+        cursor = cnx.cursor(buffered=True)
+        cursor.execute('SELECT DISTINCT location '
+                       'FROM place '
+                       'WHERE building=' + '"' + building + '" '
+                       'AND levenshtein("' + room + '", location) < 3')
+                       #'AND location LIKE "%' + room + '%"')
+        locations = cursor.fetchall()
+        #print(locations)
+        locations = [location[0] for location in locations]
+        #print(locations)
 
-    cursor = cnx.cursor(buffered=True)
-    cursor.execute('SELECT DISTINCT location '
-                   'FROM place '
-                   'WHERE building=' + '"' + building + '" '
-                   'AND levenshtein("' + room + '", location) < 3')
-                   #'AND location LIKE "%' + room + '%"')
-    locations = cursor.fetchall()
-    #print(locations)
-    locations = [location[0] for location in locations]
-    #print(locations)
-
-    if room in locations:
-        print('[+] Room found in database already, no new entry will be added but SSIDs and signal strengths will be updated.')
-    elif locations:
-        print('Rooms with similar names found: ' + str(locations))
-        print('Press enter again to confirm your current choice. Or enter the name from the given options you would like to use.')
-        return getRoom(building, possible_locations=locations, confirm=True, last_choice=room)
+        if room in locations:
+            print('[+] Room found in database already, no new entry will be added but SSIDs and signal strengths will be updated.')
+        elif locations:
+            print('Rooms with similar names found: ' + str(locations))
+            print('Press enter again to confirm your current choice. Or enter the name from the given options you would like to use.')
+            return getRoom(building, possible_locations=locations, confirm=True, last_choice=room)
     return room
 
 def getRoomSize(allowed_sizes=None):
