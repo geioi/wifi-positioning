@@ -6,6 +6,7 @@ import pyshark
 import mysql.connector
 from pyshark.tshark.tshark import get_process_path
 import settings
+import iw_scanner
 #import sys
 
 
@@ -32,8 +33,8 @@ def analyzeData(capture):
                 signal_str = int(layer.get('signal_dbm'))
             elif layer.get('bssid'):
                 bssid = layer.get('bssid')
-            elif layer.get('ssid'):
-                ssid = layer.get('ssid')
+            elif layer.get('wlan.ssid'):
+                ssid = layer.get('wlan.ssid')
 
         if not bssid in ssid_dict:
             ssid_dict[bssid] = ssid
@@ -57,19 +58,26 @@ def analyzeData(capture):
     return ssid_dict, signal_str_min_dict, signal_str_max_dict
 
 
-def addDataToDb(building, location, specified_location, floor, ssid_dict, signals_min_dict, signals_max_dict):
+def addDataToDb(building, location, specified_location, floor, ssid_dict, signals_min_dict, signals_max_dict, without_adapter=False):
     global cnx
     print('-------------------Adding data to DB-------------------')
+
+    table_place = 'place'
+    table_place_detail = 'place_detail'
+
+    if without_adapter:
+        table_place += '_without_adapter'
+        table_place_detail += '_without_adapter'
 
     add_access_point = ("INSERT INTO access_point "
                     "(bssid, ssid) "
                     "VALUES (%s, %s)")
 
-    add_place = ("INSERT INTO place "
+    add_place = ("INSERT INTO " + table_place + " "
                         "(building, location, floor, access_point_id, signal_str_min, signal_str_max) "
                         "VALUES (%s, %s, %s, %s, %s, %s)")
 
-    add_place_detail = ("INSERT INTO place_detail "
+    add_place_detail = ("INSERT INTO " + table_place_detail + " "
                  "(place_id, detailed_location, access_point_id, signal_str_min, signal_str_max) "
                  "VALUES (%s, %s, %s, %s, %s)")
 
@@ -83,7 +91,7 @@ def addDataToDb(building, location, specified_location, floor, ssid_dict, signal
 
         if ap_id:
             cursor.execute('SELECT id, signal_str_min, signal_str_max '
-                           'FROM place '
+                           'FROM ' + table_place + ' '
                            'WHERE location=' + '"' + location + '" '
                            'AND floor=' + str(floor) + ' '
                            'AND access_point_id=' + str(ap_id[0]) + ' '
@@ -96,11 +104,11 @@ def addDataToDb(building, location, specified_location, floor, ssid_dict, signal
             if place_id:
                 data_place_detail = (place_id, specified_location, ap_id[0], signals_min_dict[item[0]], signals_max_dict[item[0]])
                 if signals_min_dict[item[0]] < place_data[1]:
-                    cursor.execute('UPDATE place '
+                    cursor.execute('UPDATE ' + table_place + ' '
                                    'SET signal_str_min=' + str(signals_min_dict[item[0]]) + ' '
                                    'WHERE id=' + str(place_id))
                 if signals_max_dict[item[0]] > place_data[2]:
-                    cursor.execute('UPDATE place '
+                    cursor.execute('UPDATE ' + table_place + ' '
                                    'SET signal_str_max=' + str(signals_max_dict[item[0]]) + ' '
                                    'WHERE id=' + str(place_id))
             else:
@@ -110,6 +118,7 @@ def addDataToDb(building, location, specified_location, floor, ssid_dict, signal
 
         else:
             if item[1] == None:
+                item = list(item) #convert to list as tuples are immutable
                 item[1] = 'Unknown'
             data_ap = (item[0], item[1])
             cursor.execute(add_access_point, data_ap)
@@ -136,13 +145,17 @@ def captureDataLive(interface, building, location, specified_location, floor, fi
     capture_file = 'pcap_dumps/' + filename + '_' + specified_location.replace(' ', '_') + '.pcap'
     #add check if interface is in monitor mode or set timeout
     capture = pyshark.LiveCapture(interface=interface, output_file=capture_file, debug=False, bpf_filter='wlan type mgt subtype beacon')
-    print('-------------------Starting data capture-------------------')
+    print('-------------------Starting data capture with adapter-------------------')
     capture.load_packets(packetCount)
     print('-------------------Data captured-------------------')
     ssids, signals_min, signals_max = analyzeData(capture)
     if use_database:
         addDataToDb(building, location, specified_location, floor, ssids, signals_min, signals_max)
-
+    print('-------------------Executing scans without adapter-------------------')
+    ssids_without_adapter, signals_min_without_adapter, signals_max_without_adapter = iw_scanner.doMultipleScans('wlp2s0')
+    print('-------------------Done executing scans without adapter-------------------')
+    if use_database:
+        addDataToDb(building, location, specified_location, floor, ssids_without_adapter, signals_min_without_adapter, signals_max_without_adapter, without_adapter=True)
 
 
 def initMethod(building, room, floor, roomSize=None, specific_location=None, method=None, fileName=None, packet_count=500, interface=None):
@@ -340,16 +353,16 @@ def askForInput():
         roomSize = None
 
     interface = None
-    packet_count = None
+    #packet_count = None
     fileName = None
 
     if method == 'live':
         interface = getInterface()
-        packet_count = getPacketCount()
+        #packet_count = getPacketCount()
     else:
         fileName = getFileName()
 
-    return method, building, floor, room, roomSize, specific_location, interface, packet_count, fileName
+    return method, building, floor, room, roomSize, specific_location, interface, fileName
 
 
 use_database = True
@@ -372,8 +385,9 @@ def main():
             exit()
         use_database = False
 
-    method, building, floor, room, roomSize, specific_location, interface, packet_count, fileName = askForInput()
+    method, building, floor, room, roomSize, specific_location, interface, fileName = askForInput()
 
+    packet_count = iw_scanner.determinePacketCount('wlp2s0')
     initMethod(building, room, floor, roomSize, specific_location, method, fileName, packet_count, interface)
 
     print('[+] Scan complete room ' + room + ' now mapped!')
