@@ -2,3 +2,4 @@ USERNAME = None
 PASSWORD = None
 HOST = '127.0.0.1'
 DATABASE = None
+SUDO_PW = None
