@@ -141,7 +141,7 @@ def captureFromFile(building, location, specified_location, floor, input_file):
     if use_database:
         addDataToDb(building, location, specified_location, floor, ssids, signals_min, signals_max)
 
-def captureDataLive(interface, building, location, specified_location, floor, filename, packetCount=500):
+def captureDataLive(interface, building, location, specified_location, floor, filename, packetCount=500, sudo_pw=None):
     capture_file = 'pcap_dumps/' + filename + '_' + specified_location.replace(' ', '_') + '.pcap'
     #add check if interface is in monitor mode or set timeout
     capture = pyshark.LiveCapture(interface=interface, output_file=capture_file, debug=False, bpf_filter='wlan type mgt subtype beacon')
@@ -152,78 +152,80 @@ def captureDataLive(interface, building, location, specified_location, floor, fi
     if use_database:
         addDataToDb(building, location, specified_location, floor, ssids, signals_min, signals_max)
     print('-------------------Executing scans without adapter-------------------')
-    ssids_without_adapter, signals_min_without_adapter, signals_max_without_adapter = iw_scanner.doMultipleScans('wlp2s0')
+    ssids_without_adapter, signals_min_without_adapter, signals_max_without_adapter = iw_scanner.doMultipleScans('wlp2s0', sudo_pw)
     print('-------------------Done executing scans without adapter-------------------')
     if use_database:
         addDataToDb(building, location, specified_location, floor, ssids_without_adapter, signals_min_without_adapter, signals_max_without_adapter, without_adapter=True)
 
 
-def initMethod(building, room, floor, roomSize=None, specific_location=None, method=None, fileName=None, packet_count=500, interface=None):
+def initMethod(building, room, floor, roomSize=None, specific_location=None, method=None, fileName=None, packet_count=500, interface=None, gui=False, sudo_pw=None):
     if method == 'live':
         if specific_location:
             print('[+] Mapping custom area in the room')
-            customAreaMethod(building, room, floor, specific_location, packet_count, interface)
+            customAreaMethod(building, room, floor, specific_location, packet_count, interface, gui, sudo_pw)
         elif roomSize:
             if roomSize == 'S':
                 print('[+] Using centering method to map the room')
-                centerMethod(building, room, floor, packet_count, interface)
+                centerMethod(building, room, floor, packet_count, interface, gui, sudo_pw)
             elif roomSize == 'M':
                 locations = ['upper right', 'upper left', 'lower left', 'lower right']
                 print('[+] Using left-right method to map the room')
                 for location in locations:
-                    leftRightMethod(building, room, floor, packet_count, interface, location)
+                    leftRightMethod(building, room, floor, packet_count, interface, location, gui, sudo_pw)
             else:
                 locations = ['north-east', 'north-west', 'south-west', 'south-east']
                 print('[+] Using NESW method to map the room')
                 for location in locations:
-                    NESWMethod(building, room, floor, packet_count, interface, location)
+                    NESWMethod(building, room, floor, packet_count, interface, location, gui, sudo_pw)
         else:
             locations = ['north-east', 'north-west', 'south-west', 'south-east']
             print('[+] Using NESW method by default to map the room')
             for location in locations:
-                NESWMethod(building, room, floor, packet_count, interface, location)
+                NESWMethod(building, room, floor, packet_count, interface, location, gui, sudo_pw)
     else:
         captureFromFile(building, room, specific_location, floor, fileName)
-        while True:
-            print('[+] Enter another file name for processing (or press enter to finish)')
-            fileName = getFileName()
-            specific_location = input('[+] Enter new specific location name for this file (or press enter to finish): ')
-            if specific_location == '':
-                return
 
-            captureFromFile(building, room, specific_location, floor, fileName)
+        if not gui:
+            while True:
+                print('[+] Enter another file name for processing (or press enter to finish)')
+                fileName = getFileName()
+                specific_location = input('[+] Enter new specific location name for this file (or press enter to finish): ')
+                if specific_location == '':
+                    return
+
+                captureFromFile(building, room, specific_location, floor, fileName)
 
 
 ### capturing methods
-def leftRightMethod(building, location, floor, packetCount=500, interface=None, side=None):
+def leftRightMethod(building, location, floor, packetCount=500, interface=None, side=None, gui=False, sudo_pw=None):
     command = input('[!] Please move to the ' + side + ' side of the room and press Enter (or type anything and press Enter to exit): ')
     if command == '':
-        captureDataLive(interface, building, location, side + ' side', floor, location, packetCount)
+        captureDataLive(interface, building, location, side + ' side', floor, location, packetCount, sudo_pw)
     else:
         print('Exiting...')
         exit()
 
 
-def NESWMethod(building, location, floor, packetCount=500, interface=None, corner=None):
+def NESWMethod(building, location, floor, packetCount=500, interface=None, corner=None, gui=False, sudo_pw=None):
     command = input('[!] Please move to the ' + corner + ' corner of the room and press Enter (or type anything and press Enter to exit): ')
     if command == '':
-        captureDataLive(interface, building, location, corner + ' corner', floor, location, packetCount)
+        captureDataLive(interface, building, location, corner + ' corner', floor, location, packetCount, sudo_pw)
     else:
         print('Exiting...')
         exit()
 
-def centerMethod(building, location, floor, packetCount=500, interface=None):
+def centerMethod(building, location, floor, packetCount=500, interface=None, gui=False, sudo_pw=None):
     command = input('[!] Please move to the center of the room and press Enter (or type anything and press Enter to exit): ')
     if command == '':
-        captureDataLive(interface, building, location, 'center', floor, location, packetCount)
+        captureDataLive(interface, building, location, 'center', floor, location, packetCount, sudo_pw)
     else:
         print('Exiting...')
         exit()
 
-def customAreaMethod(building, location, floor, specific_location, packetCount=500, interface=None):
+def customAreaMethod(building, location, floor, specific_location, packetCount=500, interface=None, gui=False, sudo_pw=None):
     command = input('[!] Please move to the specified place (' + specific_location + ') in the room and press Enter (or type anything and press Enter to exit): ')
     if command == '':
-        captureDataLive(interface, building, location, specific_location, floor, location.replace(' ', '_'), packetCount)
+        captureDataLive(interface, building, location, specific_location, floor, location.replace(' ', '_'), packetCount, sudo_pw)
     else:
         print('Exiting...')
         exit()
@@ -368,7 +370,7 @@ def askForInput():
 use_database = True
 cnx = None
 
-def main():
+def collectWithoutGui():
     global cnx, use_database
     db_config = {
         'user': settings.USERNAME,
@@ -387,15 +389,21 @@ def main():
 
     method, building, floor, room, roomSize, specific_location, interface, fileName = askForInput()
 
-    packet_count = iw_scanner.determinePacketCount('wlp2s0')
-    initMethod(building, room, floor, roomSize, specific_location, method, fileName, packet_count, interface)
+    packet_count = iw_scanner.determinePacketCount('wlp2s0', settings.SUDO_PW)
+    initMethod(building, room, floor, roomSize, specific_location, method, fileName, packet_count, interface, False, settings.SUDO_PW)
 
     print('[+] Scan complete room ' + room + ' now mapped!')
     if cnx:
         cnx.close()
 
+def collectWithGui(database_connection, building, room, floor, roomSize, specific_location, method, fileName, interface, sudo_pw):
+    global cnx
+    cnx = database_connection
+    packet_count = iw_scanner.determinePacketCount('wlp2s0', sudo_pw)
+    initMethod(building, room, floor, roomSize, specific_location, method, fileName, packet_count, interface, True, sudo_pw)
+
 if __name__ == "__main__":
-    main()
+    collectWithoutGui()
 
 
 

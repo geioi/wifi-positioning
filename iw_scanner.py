@@ -1,5 +1,4 @@
 import psutil
-from settings import SUDO_PW
 
 import re
 import subprocess
@@ -14,10 +13,10 @@ regexps = [
 ]
 
 # Must run as super user.
-def scan(interface='wlan0'):
+def scan(interface='wlan0', sudo_pw=None):
     cmd = ["sudo", "-S", "iwlist", interface, "scan"]
     proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    out, err = proc.communicate(SUDO_PW.encode())
+    out, err = proc.communicate(sudo_pw.encode())
     points = out.decode()
     return points
 
@@ -37,17 +36,17 @@ def parse(content):
                 continue
     return cells
 
-def scanAndParse(interface):
-    content = scan(interface)
+def scanAndParse(interface, sudo_pw=None):
+    content = scan(interface, sudo_pw)
     return parse(content)
 
-def determinePacketCount(interface='wlan0'):
+def determinePacketCount(interface='wlan0', sudo_pw=None):
     multiplier = 50 #scan all networks approximately this many times
-    parsed_content = scanAndParse(interface)
+    parsed_content = scanAndParse(interface, sudo_pw)
     networks_count = len(parsed_content)
     return networks_count * multiplier
 
-def doMultipleScans(interface):
+def doMultipleScans(interface, sudo_pw=None):
     ssid_dict = {}
     signal_str_min_dict = {}
     signal_str_max_dict = {}
@@ -55,7 +54,7 @@ def doMultipleScans(interface):
     bssid = None
     ssid = None
     for i in range(10):
-        data = scanAndParse(interface)
+        data = scanAndParse(interface, sudo_pw)
         for cell in data:
             if 'mac' in cell:
                 bssid = cell['mac']
