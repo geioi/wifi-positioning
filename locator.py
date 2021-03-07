@@ -4,6 +4,12 @@ from gather_data import getInterface
 from gui_helper import printToConsole
 import mysql.connector
 
+
+def getMaxValueKey(dictionary):
+    values = list(dictionary.values())
+    keys = list(dictionary.keys())
+    return keys[values.index(max(values))]
+
 def findLocation(interface, with_adapter, sudo_pw=None, gui=False):
     cursor = cnx.cursor(buffered=True)
 
@@ -20,6 +26,7 @@ def findLocation(interface, with_adapter, sudo_pw=None, gui=False):
             'AND %(signal_str)s BETWEEN p.signal_str_min AND p.signal_str_max'
 
     possible_locations = {}
+    percentages = {}
 
     scanResults = scanAndParse(interface, sudo_pw)
 
@@ -47,10 +54,23 @@ def findLocation(interface, with_adapter, sudo_pw=None, gui=False):
                 possible_locations[location] = 1
 
     if gui:
-        printToConsole(str(possible_locations) + '\n')
+        printToConsole('Locations counts - ' + str(possible_locations) + '\n')
     else:
         print(possible_locations)
-        #print(result)
+
+    #calculate percentages
+    for key, value in possible_locations.items():
+        percentages[key] = str(round(value / len(scanResults) * 100, 2)) + '%'
+
+    if gui:
+        printToConsole('Likelihood percentages - ' + str(percentages) + '\n')
+    else:
+        print(percentages)
+
+    if gui:
+        printToConsole('Your current location is most probably ' + str(getMaxValueKey(possible_locations)) + '\n')
+    else:
+        print('Your current location is most probably ' + str(getMaxValueKey(possible_locations)))
 
 def usesExternalAdapter():
     answer = input('Interface is used by an external adapter? (yes/no): ')

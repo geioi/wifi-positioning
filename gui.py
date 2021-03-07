@@ -9,6 +9,14 @@ from locator import locateWithGui
 from gui_helper import printToConsole, createConsoleArea, clearConsoleArea, createButtonsFrame, askConfirmation
 import settings
 
+def is_integer(n):
+    try:
+        float(n)
+    except ValueError:
+        return False
+    else:
+        return float(n).is_integer()
+
 def hideAndShowMethodOptions(method_option):
     if method_option == 'Live':
         file_name_label.grid_remove()
@@ -85,6 +93,20 @@ def connectToDatabase(user, password, host, database_table):
     return cnx
 
 def collectData():
+    if not building.get():
+        printToConsole('Building field can not be empty\n')
+        return
+    if not floor.get():
+        printToConsole('Floor field can not be empty\n')
+        return
+    else:
+        if not is_integer(floor.get()):
+            printToConsole('Floor has to be an integer value\n')
+            return
+    if not room.get():
+        printToConsole('Room field can no be empty\n')
+        return
+
     db_conn = connectToDatabase(user.get(), db_pw.get(), host.get(), db_table.get())
     if not db_conn:
         printToConsole('Would you like to continue anyway?\n')
@@ -97,7 +119,7 @@ def collectData():
         method = 'live'
         interface = data_interface_dropdown.get()
         if not interface:
-            printToConsole('Interface not set\n')
+            printToConsole('Interface is not set\n')
             return
         if selection_radio.get():
             if selection_radio.get() == 'room_size':
