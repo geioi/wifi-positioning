@@ -1,9 +1,10 @@
 import settings
 from iw_scanner import scanAndParse
 from gather_data import getInterface
+from gui_helper import printToConsole
 import mysql.connector
 
-def findLocation(interface, with_adapter, sudo_pw=None):
+def findLocation(interface, with_adapter, sudo_pw=None, gui=False):
     cursor = cnx.cursor(buffered=True)
 
     table_place = 'place'
@@ -23,14 +24,21 @@ def findLocation(interface, with_adapter, sudo_pw=None):
     scanResults = scanAndParse(interface, sudo_pw)
 
     if not scanResults:
-        print('No results found with given interface')
+        if gui:
+            printToConsole('No results found with given interface')
+        else:
+            print('No results found with given interface')
         return
 
     for result in scanResults:
         cursor.execute(query, {'bssid': result['mac'], 'signal_str': result['signal_level_dBm']})
         locations = cursor.fetchall()
-        print("locations for mac %s with ssid %s and signal strength %s" % (result['mac'], result['essid'], result['signal_level_dBm']))
-        print(locations)
+        if gui:
+            printToConsole("locations for mac %s with ssid %s and signal strength %s\n" % (result['mac'], result['essid'], result['signal_level_dBm']))
+            printToConsole(str(locations) + '\n')
+        else:
+            print("locations for mac %s with ssid %s and signal strength %s" % (result['mac'], result['essid'], result['signal_level_dBm']))
+            print(locations)
         for item in locations:
             location = item[0]
             if location in possible_locations:
@@ -38,7 +46,10 @@ def findLocation(interface, with_adapter, sudo_pw=None):
             else:
                 possible_locations[location] = 1
 
-    print(possible_locations)
+    if gui:
+        printToConsole(str(possible_locations) + '\n')
+    else:
+        print(possible_locations)
         #print(result)
 
 def usesExternalAdapter():
@@ -71,7 +82,7 @@ def locateWithoutGui(interface, with_adapter):
 def locateWithGui(database_connection, interface, with_adapter, sudo_pw):
     global cnx
     cnx = database_connection
-    findLocation(interface, with_adapter, sudo_pw)
+    findLocation(interface, with_adapter, sudo_pw, gui=True)
 
 if __name__ == "__main__":
     yes_no_dict = {'yes': True, 'no': False}

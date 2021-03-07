@@ -6,6 +6,7 @@ from tkinter.filedialog import askopenfilename
 
 from gather_data import get_tshark_interface_names, get_process_path, collectWithGui
 from locator import locateWithGui
+from gui_helper import printToConsole, createConsoleArea, clearConsoleArea, createButtonsFrame, askConfirmation
 import settings
 
 def hideAndShowMethodOptions(method_option):
@@ -78,39 +79,43 @@ def connectToDatabase(user, password, host, database_table):
     try:
         cnx = mysql.connector.connect(**db_config)
     except:
-        print('Could not connect to the database or could not find the given table')
-        return None
+        printToConsole('Could not connect to the database or could not find the given table\n')
+        return False
 
     return cnx
 
 def collectData():
     db_conn = connectToDatabase(user.get(), db_pw.get(), host.get(), db_table.get())
     if not db_conn:
-        return
+        printToConsole('Would you like to continue anyway?\n')
+        answer = askConfirmation(window)
+        if answer == 'Abort':
+            return
     spec_location = None
     room_size_value = None
     if method_dropdown.get() == 'Live':
         method = 'live'
         interface = data_interface_dropdown.get()
         if not interface:
-            print('Interface not set')
+            printToConsole('Interface not set\n')
             return
         if selection_radio.get():
             if selection_radio.get() == 'room_size':
                 if room_size_radio_selection.get():
                     room_size_value = room_size_radio_selection.get()
                 else:
-                    print('Room size has to be specified')
+                    printToConsole('Room size has to be specified\n')
                     return
             else:
                 if specific_location.get():
                     spec_location = specific_location.get()
                 else:
-                    print('Location has to be specified!')
+                    printToConsole('Location has to be specified!\n')
                     return
         else:
-            print('You have to specify either room size or more specific location')
+            printToConsole('You have to specify either room size or more specific location\n')
             return
+        clearConsoleArea()
         collectWithGui(database_connection=db_conn,
                        building=building.get(),
                        room=room.get(),
@@ -120,10 +125,12 @@ def collectData():
                        method=method,
                        fileName=None,
                        interface=interface,
-                       sudo_pw=sudo_pw.get())
+                       sudo_pw=sudo_pw.get(),
+                       gui=window)
     else:
         method = 'file'
         spec_location = specific_location.get()
+        clearConsoleArea()
         collectWithGui(database_connection=db_conn,
                        building=building.get(),
                        room=room.get(),
@@ -133,26 +140,34 @@ def collectData():
                        method=method,
                        fileName=file_name.get(),
                        interface=None,
-                       sudo_pw=sudo_pw.get())
-
-    #print('collecting data')
+                       sudo_pw=sudo_pw.get(),
+                       gui=window)
+    if db_conn:
+        db_conn.close()
 
 def startLocating():
     db_conn = connectToDatabase(user.get(), db_pw.get(), host.get(), db_table.get())
     if not db_conn:
         return
     if locating_interface_dropdown.get():
+        clearConsoleArea()
         locateWithGui(database_connection=db_conn, interface=locating_interface_dropdown.get(), with_adapter=locating_is_adapter.get(), sudo_pw=sudo_pw.get())
     else:
-        print('interface is not set')
+        printToConsole('interface is not set\n')
     db_conn.close()
-
 
 available_interfaces = get_tshark_interface_names(get_process_path())
 
+## Main window
 window = tk.Tk()
 window.title('Wifi scripts')
-window.geometry('1000x600')
+window.geometry('800x700')
+
+createConsoleArea(window)
+
+window.grid_columnconfigure(0, weight=1)
+
+createButtonsFrame(window)
 
 ## Tabs
 tabControl = ttk.Notebook(window)
