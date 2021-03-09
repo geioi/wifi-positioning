@@ -159,6 +159,7 @@ def captureFromFile(building, location, specified_location, floor, input_file, g
         addDataToDb(building, location, specified_location, floor, ssids, signals_min, signals_max, gui=gui)
 
 def captureDataLive(interface, building, location, specified_location, floor, filename, packetCount=500, sudo_pw=None, gui=False):
+    global internal_adapter
     capture_file = 'pcap_dumps/' + filename + '_' + specified_location.replace(' ', '_') + '.pcap'
     #add check if interface is in monitor mode or set timeout
     capture = pyshark.LiveCapture(interface=interface, output_file=capture_file, debug=False, bpf_filter='wlan type mgt subtype beacon')
@@ -181,7 +182,7 @@ def captureDataLive(interface, building, location, specified_location, floor, fi
         printToConsole('-------------------Executing scans without adapter-------------------\n')
     else:
         print('-------------------Executing scans without adapter-------------------')
-    ssids_without_adapter, signals_min_without_adapter, signals_max_without_adapter = iw_scanner.doMultipleScans('wlp2s0', sudo_pw)
+    ssids_without_adapter, signals_min_without_adapter, signals_max_without_adapter = iw_scanner.doMultipleScans(internal_adapter, sudo_pw)
     if gui:
         print('-------------------Done executing scans without adapter-------------------')
         printToConsole('-------------------Done executing scans without adapter-------------------\n')
@@ -455,9 +456,10 @@ def askForInput():
 
 use_database = True
 cnx = None
+internal_adapter = 'wlp2s0'
 
 def collectWithoutGui():
-    global cnx, use_database
+    global cnx, use_database, internal_adapter
     db_config = {
         'user': settings.USERNAME,
         'password': settings.PASSWORD,
@@ -469,13 +471,13 @@ def collectWithoutGui():
         cnx = mysql.connector.connect(**db_config)
     except:
         answer = input('Could not establish connection to database or table name is not correct. Continue anyway? (yes/no): ')
-        if answer != 'yes':
+        if answer not in ['yes', 'y']:
             exit()
         use_database = False
 
     method, building, floor, room, roomSize, specific_location, interface, fileName = askForInput()
 
-    packet_count = iw_scanner.determinePacketCount('wlp2s0', settings.SUDO_PW)
+    packet_count = iw_scanner.determinePacketCount(internal_adapter, settings.SUDO_PW)
     initMethod(building, room, floor, roomSize, specific_location, method, fileName, packet_count, interface, False, settings.SUDO_PW)
 
     print('[+] Scan complete room ' + room + ' now mapped!')
@@ -483,12 +485,13 @@ def collectWithoutGui():
         cnx.close()
 
 def collectWithGui(database_connection, building, room, floor, roomSize, specific_location, method, fileName, interface, sudo_pw, gui):
-    global cnx, use_database
+    global cnx, use_database, internal_adapter
     if database_connection:
         cnx = database_connection
+        use_database = True
     else:
         use_database = False
-    packet_count = iw_scanner.determinePacketCount('wlp2s0', sudo_pw)
+    packet_count = iw_scanner.determinePacketCount(internal_adapter, sudo_pw)
     abort_command = initMethod(building, room, floor, roomSize, specific_location, method, fileName, packet_count, interface, gui, sudo_pw)
     if abort_command:
         return

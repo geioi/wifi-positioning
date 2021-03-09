@@ -66,15 +66,20 @@ def findLocation(interface, with_adapter, sudo_pw=None, gui=False):
         printToConsole('Likelihood percentages - ' + str(percentages) + '\n')
     else:
         print(percentages)
-
-    if gui:
-        printToConsole('Your current location is most probably ' + str(getMaxValueKey(possible_locations)) + '\n')
+    if possible_locations:
+        if gui:
+            printToConsole('Your current location is most probably ' + str(getMaxValueKey(possible_locations)) + '\n')
+        else:
+            print('Your current location is most probably ' + str(getMaxValueKey(possible_locations)))
     else:
-        print('Your current location is most probably ' + str(getMaxValueKey(possible_locations)))
+        if gui:
+            printToConsole('No matching results found. Unable to locate you. Try to scan again or change to another database table\n')
+        else:
+            print('No matching results found. Unable to locate you. Try to scan again or change to another database table')
 
 def usesExternalAdapter():
-    answer = input('Interface is used by an external adapter? (yes/no): ')
-    if answer not in ['yes', 'no']:
+    answer = input('Interface is an external adapter (yes/no): ')
+    if answer not in ['yes', 'no', 'y', 'n']:
         exit()
     return answer
 
