@@ -110,7 +110,7 @@ def locateWithGui(database_connection, interface, with_adapter, sudo_pw):
     findLocation(interface, with_adapter, sudo_pw, gui=True)
 
 if __name__ == "__main__":
-    yes_no_dict = {'yes': True, 'no': False}
+    yes_no_dict = {'yes': True, 'y': True, 'no': False, 'n': False}
     interface = getInterface()
     uses_external_adapter = yes_no_dict[usesExternalAdapter()]
     locateWithoutGui(interface, uses_external_adapter)

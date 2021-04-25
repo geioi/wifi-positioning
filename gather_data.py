@@ -158,31 +158,31 @@ def captureFromFile(building, location, specified_location, floor, input_file, g
     if use_database:
         addDataToDb(building, location, specified_location, floor, ssids, signals_min, signals_max, gui=gui)
 
-def captureDataLive(interface, building, location, specified_location, floor, filename, packetCount=500, sudo_pw=None, gui=False):
-    global internal_adapter
+def captureDataLive(interface, building, location, specified_location, floor, filename, packetCount=500, sudo_pw=None, gui=False, internal_adapter_only=False, internal_interface = None):
     capture_file = 'pcap_dumps/' + filename + '_' + specified_location.replace(' ', '_') + '.pcap'
-    #add check if interface is in monitor mode or set timeout
-    capture = pyshark.LiveCapture(interface=interface, output_file=capture_file, debug=False, bpf_filter='wlan type mgt subtype beacon')
-    if gui:
-        print('-------------------Starting data capture with adapter-------------------')
-        printToConsole('-------------------Starting data capture with adapter-------------------\n')
-    else:
-        print('-------------------Starting data capture with adapter-------------------')
-    capture.load_packets(packetCount)
-    if gui:
-        print('-------------------Data captured-------------------')
-        printToConsole('-------------------Data captured-------------------\n')
-    else:
-        print('-------------------Data captured-------------------')
-    ssids, signals_min, signals_max = analyzeData(capture, gui)
-    if use_database:
-        addDataToDb(building, location, specified_location, floor, ssids, signals_min, signals_max, gui=gui)
+    if not internal_adapter_only:
+        #add check if interface is in monitor mode or set timeout
+        capture = pyshark.LiveCapture(interface=interface, output_file=capture_file, debug=False, bpf_filter='wlan type mgt subtype beacon')
+        if gui:
+            print('-------------------Starting data capture with adapter-------------------')
+            printToConsole('-------------------Starting data capture with adapter-------------------\n')
+        else:
+            print('-------------------Starting data capture with adapter-------------------')
+        capture.load_packets(packetCount)
+        if gui:
+            print('-------------------Data captured-------------------')
+            printToConsole('-------------------Data captured-------------------\n')
+        else:
+            print('-------------------Data captured-------------------')
+        ssids, signals_min, signals_max = analyzeData(capture, gui)
+        if use_database:
+            addDataToDb(building, location, specified_location, floor, ssids, signals_min, signals_max, gui=gui)
     if gui:
         print('-------------------Executing scans without adapter-------------------')
         printToConsole('-------------------Executing scans without adapter-------------------\n')
     else:
         print('-------------------Executing scans without adapter-------------------')
-    ssids_without_adapter, signals_min_without_adapter, signals_max_without_adapter = iw_scanner.doMultipleScans(internal_adapter, sudo_pw)
+    ssids_without_adapter, signals_min_without_adapter, signals_max_without_adapter = iw_scanner.doMultipleScans(internal_interface, sudo_pw)
     if gui:
         print('-------------------Done executing scans without adapter-------------------')
         printToConsole('-------------------Done executing scans without adapter-------------------\n')
@@ -192,14 +192,14 @@ def captureDataLive(interface, building, location, specified_location, floor, fi
         addDataToDb(building, location, specified_location, floor, ssids_without_adapter, signals_min_without_adapter, signals_max_without_adapter, without_adapter=True, gui=gui)
 
 
-def initMethod(building, room, floor, roomSize=None, specific_location=None, method=None, fileName=None, packet_count=500, interface=None, gui=False, sudo_pw=None):
+def initMethod(building, room, floor, roomSize=None, specific_location=None, method=None, fileName=None, packet_count=500, interface=None, gui=False, sudo_pw=None, internal_adapter_only=False, internal_interface=None):
     if method == 'live':
         if specific_location:
             if gui:
                 printToConsole('[+] Mapping custom area in the room\n')
             else:
                 print('[+] Mapping custom area in the room')
-            abort_command = customAreaMethod(building, room, floor, specific_location, packet_count, interface, gui, sudo_pw)
+            abort_command = customAreaMethod(building, room, floor, specific_location, packet_count, interface, gui, sudo_pw, internal_adapter_only=internal_adapter_only, internal_interface=internal_interface)
             if abort_command:
                 return abort_command
         elif roomSize:
@@ -208,17 +208,17 @@ def initMethod(building, room, floor, roomSize=None, specific_location=None, met
                     printToConsole('[+] Using centering method to map the room\n')
                 else:
                     print('[+] Using centering method to map the room')
-                abort_command = centerMethod(building, room, floor, packet_count, interface, gui, sudo_pw)
+                abort_command = centerMethod(building, room, floor, packet_count, interface, gui, sudo_pw, internal_adapter_only=internal_adapter_only, internal_interface=internal_interface)
                 if abort_command:
                     return abort_command
             elif roomSize == 'M':
-                locations = ['upper right', 'upper left', 'lower left', 'lower right']
+                locations = ['left', 'right']
                 if gui:
                     printToConsole('[+] Using left-right method to map the room\n')
                 else:
                     print('[+] Using left-right method to map the room')
                 for location in locations:
-                    abort_command = leftRightMethod(building, room, floor, packet_count, interface, location, gui, sudo_pw)
+                    abort_command = leftRightMethod(building, room, floor, packet_count, interface, location, gui, sudo_pw, internal_adapter_only=internal_adapter_only, internal_interface=internal_interface)
                     if abort_command:
                         return abort_command
             else:
@@ -228,7 +228,7 @@ def initMethod(building, room, floor, roomSize=None, specific_location=None, met
                 else:
                     print('[+] Using NESW method to map the room')
                 for location in locations:
-                    abort_command = NESWMethod(building, room, floor, packet_count, interface, location, gui, sudo_pw)
+                    abort_command = NESWMethod(building, room, floor, packet_count, interface, location, gui, sudo_pw, internal_adapter_only=internal_adapter_only, internal_interface=internal_interface)
                     if abort_command:
                         return abort_command
         else:
@@ -238,7 +238,7 @@ def initMethod(building, room, floor, roomSize=None, specific_location=None, met
             else:
                 print('[+] Using NESW method by default to map the room')
             for location in locations:
-                abort_command = NESWMethod(building, room, floor, packet_count, interface, location, gui, sudo_pw)
+                abort_command = NESWMethod(building, room, floor, packet_count, interface, location, gui, sudo_pw, internal_adapter_only=internal_adapter_only, internal_interface=internal_interface)
                 if abort_command:
                     return abort_command
     else:
@@ -256,14 +256,14 @@ def initMethod(building, room, floor, roomSize=None, specific_location=None, met
 
 
 ### capturing methods
-def leftRightMethod(building, location, floor, packetCount=500, interface=None, side=None, gui=False, sudo_pw=None):
+def leftRightMethod(building, location, floor, packetCount=500, interface=None, side=None, gui=False, sudo_pw=None, internal_adapter_only=False, internal_interface=None):
     if gui:
         printToConsole('[!] Please move to the ' + side + ' side of the room and press Continue (or Abort to exit): \n')
         command = askConfirmation(gui)
     else:
         command = input('[!] Please move to the ' + side + ' side of the room and press Enter (or type anything and press Enter to exit): ')
     if command == '':
-        captureDataLive(interface, building, location, side + ' side', floor, location, packetCount, sudo_pw, gui)
+        captureDataLive(interface, building, location, side + ' side', floor, location, packetCount, sudo_pw, gui, internal_adapter_only=internal_adapter_only, internal_interface=internal_interface)
     else:
         if gui:
             printToConsole('Aborting..\n')
@@ -272,14 +272,14 @@ def leftRightMethod(building, location, floor, packetCount=500, interface=None, 
         exit()
 
 
-def NESWMethod(building, location, floor, packetCount=500, interface=None, corner=None, gui=False, sudo_pw=None):
+def NESWMethod(building, location, floor, packetCount=500, interface=None, corner=None, gui=False, sudo_pw=None, internal_adapter_only=False, internal_interface=None):
     if gui:
         printToConsole('[!] Please move to the ' + corner + ' corner of the room and press Continue (or Abort to exit): \n')
         command = askConfirmation(gui)
     else:
         command = input('[!] Please move to the ' + corner + ' corner of the room and press Enter (or type anything and press Enter to exit): ')
     if command == '':
-        captureDataLive(interface, building, location, corner + ' corner', floor, location, packetCount, sudo_pw, gui)
+        captureDataLive(interface, building, location, corner + ' corner', floor, location, packetCount, sudo_pw, gui, internal_adapter_only=internal_adapter_only, internal_interface=internal_interface)
     else:
         if gui:
             printToConsole('Aborting..\n')
@@ -287,14 +287,14 @@ def NESWMethod(building, location, floor, packetCount=500, interface=None, corne
         print('Exiting...')
         exit()
 
-def centerMethod(building, location, floor, packetCount=500, interface=None, gui=False, sudo_pw=None):
+def centerMethod(building, location, floor, packetCount=500, interface=None, gui=False, sudo_pw=None, internal_adapter_only=False, internal_interface=None):
     if gui:
         printToConsole('[!] Please move to the center of the room and press Continue (or Abort to exit): \n')
         command = askConfirmation(gui)
     else:
         command = input('[!] Please move to the center of the room and press Enter (or type anything and press Enter to exit): ')
     if command == '':
-        captureDataLive(interface, building, location, 'center', floor, location, packetCount, sudo_pw, gui)
+        captureDataLive(interface, building, location, 'center', floor, location, packetCount, sudo_pw, gui, internal_adapter_only=internal_adapter_only, internal_interface=internal_interface)
     else:
         if gui:
             printToConsole('Aborting..\n')
@@ -302,14 +302,14 @@ def centerMethod(building, location, floor, packetCount=500, interface=None, gui
         print('Exiting...')
         exit()
 
-def customAreaMethod(building, location, floor, specific_location, packetCount=500, interface=None, gui=False, sudo_pw=None):
+def customAreaMethod(building, location, floor, specific_location, packetCount=500, interface=None, gui=False, sudo_pw=None, internal_adapter_only=False, internal_interface=None):
     if gui:
         printToConsole('[!] Please move to the specified place (' + specific_location + ') in the room and press Continue (or Abort to exit): \n')
         command = askConfirmation(gui)
     else:
         command = input('[!] Please move to the specified place (' + specific_location + ') in the room and press Enter (or type anything and press Enter to exit): ')
     if command == '':
-        captureDataLive(interface, building, location, specific_location, floor, location.replace(' ', '_'), packetCount, sudo_pw, gui)
+        captureDataLive(interface, building, location, specific_location, floor, location.replace(' ', '_'), packetCount, sudo_pw, gui, internal_adapter_only=internal_adapter_only, internal_interface=internal_interface)
     else:
         if gui:
             printToConsole('Aborting..\n')
@@ -331,7 +331,7 @@ def getMethod():
 def getInterface(available_interfaces=None):
     if available_interfaces == None:
         available_interfaces = get_tshark_interface_names(get_process_path())
-    interface = input('[?] Please enter the name of the interface: ')
+    interface = input('[?] Please enter the name of the adapter interface: ')
     if interface == '':
         exit()
 
@@ -339,6 +339,24 @@ def getInterface(available_interfaces=None):
         return interface
     print('Given interface does not seem to exist! Available interfaces are ' + str(available_interfaces))
     return getInterface(available_interfaces)
+
+def isExternalInterface():
+    answer = input('Interface is an external adapter (yes/no): ')
+    if answer not in ['yes', 'no', 'y', 'n']:
+        exit()
+    return answer
+
+def getInternalInterface(available_interfaces=None):
+    if available_interfaces == None:
+        available_interfaces = get_tshark_interface_names(get_process_path())
+    interface = input('[?] Please enter the name of the internal built-in network interface: ')
+    if interface == '':
+        exit()
+
+    if interface in available_interfaces:
+        return interface
+    print('Given interface does not seem to exist! Available interfaces are ' + str(available_interfaces))
+    return getInternalInterface(available_interfaces)
 
 def getFileName(accepted_extensions=None):
     if accepted_extensions is None:
@@ -384,11 +402,8 @@ def getRoom(building=None, possible_locations=None, confirm=False, last_choice=N
                        'FROM place '
                        'WHERE building=' + '"' + building + '" '
                        'AND levenshtein("' + room + '", location) < 3')
-                       #'AND location LIKE "%' + room + '%"')
         locations = cursor.fetchall()
-        #print(locations)
         locations = [location[0] for location in locations]
-        #print(locations)
 
         if room in locations:
             print('[+] Room found in database already, no new entry will be added but SSIDs and signal strengths will be updated.')
@@ -421,16 +436,8 @@ def getSpecificLocation(method):
             exit()
     return specific_location
 
-def getPacketCount():
-    packet_count = input('[+] (Optional) Enter the packet amount before terminating (default is 500): ')
-    if packet_count == '':
-        return 500
-    if packet_count.isdigit():
-        return int(packet_count)
-    print('Invalid input! Packet count has to be a digit')
-    return getPacketCount()
-
 def askForInput():
+    yes_no_dict = {'yes': True, 'y': True, 'no': False, 'n': False}
     method = getMethod()
     building = getBuilding()
     floor = getFloor()
@@ -442,24 +449,28 @@ def askForInput():
         roomSize = None
 
     interface = None
-    #packet_count = None
+    is_external_interface = None
+    internal_adapter = None
     fileName = None
 
     if method == 'live':
         interface = getInterface()
-        #packet_count = getPacketCount()
+        is_external_interface = yes_no_dict[isExternalInterface()]
+        if is_external_interface:
+            internal_adapter = getInternalInterface()
+        else:
+            internal_adapter = interface
     else:
         fileName = getFileName()
 
-    return method, building, floor, room, roomSize, specific_location, interface, fileName
+    return method, building, floor, room, roomSize, specific_location, interface, fileName, internal_adapter, not is_external_interface
 
 
 use_database = True
 cnx = None
-internal_adapter = 'wlp2s0'
 
 def collectWithoutGui():
-    global cnx, use_database, internal_adapter
+    global cnx, use_database
     db_config = {
         'user': settings.USERNAME,
         'password': settings.PASSWORD,
@@ -475,24 +486,25 @@ def collectWithoutGui():
             exit()
         use_database = False
 
-    method, building, floor, room, roomSize, specific_location, interface, fileName = askForInput()
-
-    packet_count = iw_scanner.determinePacketCount(internal_adapter, settings.SUDO_PW)
-    initMethod(building, room, floor, roomSize, specific_location, method, fileName, packet_count, interface, False, settings.SUDO_PW)
+    method, building, floor, room, roomSize, specific_location, interface, fileName, internal_adapter, internal_adapter_only = askForInput()
+    packet_count = None
+    if not internal_adapter_only:
+        packet_count = iw_scanner.determinePacketCount(internal_adapter, settings.SUDO_PW)
+    initMethod(building, room, floor, roomSize, specific_location, method, fileName, packet_count, interface, False, settings.SUDO_PW, internal_adapter_only=internal_adapter_only, internal_interface=internal_adapter)
 
     print('[+] Scan complete room ' + room + ' now mapped!')
     if cnx:
         cnx.close()
 
-def collectWithGui(database_connection, building, room, floor, roomSize, specific_location, method, fileName, interface, sudo_pw, gui):
-    global cnx, use_database, internal_adapter
+def collectWithGui(database_connection, building, room, floor, roomSize, specific_location, method, fileName, interface, sudo_pw, gui, internal_interface, internal_adapter_only=False):
+    global cnx, use_database
     if database_connection:
         cnx = database_connection
         use_database = True
     else:
         use_database = False
-    packet_count = iw_scanner.determinePacketCount(internal_adapter, sudo_pw)
-    abort_command = initMethod(building, room, floor, roomSize, specific_location, method, fileName, packet_count, interface, gui, sudo_pw)
+    packet_count = iw_scanner.determinePacketCount(internal_interface, sudo_pw)
+    abort_command = initMethod(building, room, floor, roomSize, specific_location, method, fileName, packet_count, interface, gui, sudo_pw, internal_adapter_only=internal_adapter_only, internal_interface=internal_interface)
     if abort_command:
         return
     printToConsole('[+] Scan complete room ' + room + ' now mapped!\n')

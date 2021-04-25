@@ -63,6 +63,14 @@ def hideAndShowRadioOptions(radio_option):
         specific_location_label.grid()
         specific_location.grid()
 
+def hideAndShowInternalAdapterSelection(radio_selection):
+    if radio_selection:
+        data_internal_interface_name.grid()
+        data_internal_interface_dropdown_menu.grid()
+    else:
+        data_internal_interface_name.grid_remove()
+        data_internal_interface_dropdown_menu.grid_remove()
+
 def getFile():
     filename = askopenfilename()
     if filename:
@@ -74,6 +82,9 @@ def modeChanged(*args):
 
 def selectionChanged(*args):
     hideAndShowRadioOptions(selection_radio.get())
+
+def isExternalSelected(*args):
+    hideAndShowInternalAdapterSelection(data_is_adapter.get())
 
 def connectToDatabase(user, password, host, database_table):
     global cnx
@@ -115,12 +126,24 @@ def collectData():
             return
     spec_location = None
     room_size_value = None
+    only_use_internal = False
+    internal_interface = None
     if method_dropdown.get() == 'Live':
         method = 'live'
         interface = data_interface_dropdown.get()
         if not interface:
             printToConsole('Interface is not set\n')
             return
+        else:
+            if data_is_adapter.get():
+                internal_interface = data_internal_interface_dropdown.get()
+                if not internal_interface:
+                    printToConsole('Internal interface needs to be set if using external adapter\n')
+                    return
+                internal_interface = data_internal_interface_dropdown.get()
+            else:
+                internal_interface = interface
+                only_use_internal = True
         if selection_radio.get():
             if selection_radio.get() == 'room_size':
                 if room_size_radio_selection.get():
@@ -148,7 +171,9 @@ def collectData():
                        fileName=None,
                        interface=interface,
                        sudo_pw=sudo_pw.get(),
-                       gui=window)
+                       gui=window,
+                       internal_interface=internal_interface,
+                       internal_adapter_only=only_use_internal)
     else:
         method = 'file'
         spec_location = specific_location.get()
@@ -163,7 +188,9 @@ def collectData():
                        fileName=file_name.get(),
                        interface=None,
                        sudo_pw=sudo_pw.get(),
-                       gui=window)
+                       gui=window,
+                       internal_interface=internal_interface,
+                       internal_adapter_only=only_use_internal)
     if db_conn:
         db_conn.close()
 
@@ -232,23 +259,28 @@ method_dropdown_menu.grid(row=0, columnspan=3)
 
 data_interface_label = Label(data_tab, text="Interface name")
 data_interface_label.grid(row=1)
-building_label = Label(data_tab, text="Building").grid(row=2)
-floor_label = Label(data_tab, text="Floor").grid(row=3)
-room_label = Label(data_tab, text="Room").grid(row=4)
+building_label = Label(data_tab, text="Building").grid(row=3)
+floor_label = Label(data_tab, text="Floor").grid(row=4)
+room_label = Label(data_tab, text="Room").grid(row=5)
 choose_one_label = Label(data_tab, text="Choose one")
-choose_one_label.grid(row=5)
+choose_one_label.grid(row=7)
 
 room_size_label = Label(data_tab, text="Room size")
-room_size_label.grid(row=6)
+room_size_label.grid(row=7)
 specific_location_label = Label(data_tab, text="Specific location")
-specific_location_label.grid(row=6)
+specific_location_label.grid(row=7)
 file_name_label = Label(data_tab, text="File name (ending in .pcap or .pcapng)")
 file_name_label.grid(row=1)
+
+data_internal_interface_name = Label(data_tab, text="Internal interface name")
+data_internal_interface_name.grid(row=2)
 
 method_dropdown.trace(mode='w', callback=modeChanged)
 
 data_interface_dropdown = tk.StringVar()
 data_interface_dropdown_menu = ttk.Combobox(data_tab, textvariable=data_interface_dropdown, values=available_interfaces, justify='center',  width=30)
+data_internal_interface_dropdown = tk.StringVar()
+data_internal_interface_dropdown_menu = ttk.Combobox(data_tab, textvariable=data_internal_interface_dropdown, values=available_interfaces, justify='center',  width=30)
 building = Entry(data_tab)
 floor = Entry(data_tab)
 room = Entry(data_tab)
@@ -260,36 +292,38 @@ add_file_btn = Button(data_tab, text='Browse..', command=getFile)
 add_file_btn.grid(row=1, column=2)
 
 data_interface_dropdown_menu.grid(row=1, column=1)
-building.grid(row=2, column=1)
-floor.grid(row=3, column=1)
-room.grid(row=4, column=1)
-room_size.grid(row=6, column=1)
-specific_location.grid(row=6, column=1)
+data_internal_interface_dropdown_menu.grid(row=2, column=1)
+building.grid(row=3, column=1)
+floor.grid(row=4, column=1)
+room.grid(row=5, column=1)
+room_size.grid(row=7, column=1)
+specific_location.grid(row=7, column=1)
 file_name.grid(row=1, column=1, padx=10)
 
 selection_radio = tk.StringVar()
 room_size_radio_btn = Radiobutton(data_tab, text='Choose a room size', variable=selection_radio, value='room_size')
-room_size_radio_btn.grid(row=5, column=1)
+room_size_radio_btn.grid(row=6, column=1)
 
 specific_location_radio_btn = Radiobutton(data_tab, text='Specify location', variable=selection_radio, value='spec_loc')
-specific_location_radio_btn.grid(row=5, column=2)
+specific_location_radio_btn.grid(row=6, column=2)
 
 room_size_radio_selection = tk.StringVar()
 room_size_radio_s = Radiobutton(data_tab, text='Small', variable=room_size_radio_selection, value='S')
-room_size_radio_s.grid(row=6, column=1)
+room_size_radio_s.grid(row=7, column=1)
 room_size_radio_m = Radiobutton(data_tab, text='Medium', variable=room_size_radio_selection, value='M')
-room_size_radio_m.grid(row=6, column=2)
+room_size_radio_m.grid(row=7, column=2)
 room_size_radio_l = Radiobutton(data_tab, text='Large', variable=room_size_radio_selection, value='L')
-room_size_radio_l.grid(row=6, column=3)
+room_size_radio_l.grid(row=7, column=3)
 
 selection_radio.trace(mode='w', callback=selectionChanged)
 
 start_gathering_btn = Button(data_tab, text='Gather data', command=collectData)
-start_gathering_btn.grid(row=7, column=1)
+start_gathering_btn.grid(row=8, column=1)
 
 data_is_adapter = tk.IntVar()
 data_is_adapter_checkbox = Checkbutton(data_tab, text="Is an external adapter?", variable=data_is_adapter)
 data_is_adapter_checkbox.grid(row=1, column=2)
+data_is_adapter.trace(mode='w', callback=isExternalSelected)
 
 file_name_label.grid_remove()
 file_name.grid_remove()
@@ -301,6 +335,8 @@ room_size_radio_m.grid_remove()
 room_size_radio_l.grid_remove()
 specific_location_label.grid_remove()
 specific_location.grid_remove()
+data_internal_interface_name.grid_remove()
+data_internal_interface_dropdown_menu.grid_remove()
 
 ## Locating tab content
 locating_interface_dropdown = tk.StringVar()
