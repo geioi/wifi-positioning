@@ -10,7 +10,7 @@ def getMaxValueKey(dictionary):
     keys = list(dictionary.keys())
     return keys[values.index(max(values))]
 
-def findLocation(interface, with_adapter, sudo_pw=None, gui=False):
+def findLocation(interface, with_adapter, sudo_pw=None, gui=False, debug_mode=False):
     cursor = cnx.cursor(buffered=True)
 
     table_place = 'place'
@@ -40,32 +40,33 @@ def findLocation(interface, with_adapter, sudo_pw=None, gui=False):
     for result in scanResults:
         cursor.execute(query, {'bssid': result['mac'], 'signal_str': result['signal_level_dBm']})
         locations = cursor.fetchall()
-        if gui:
-            printToConsole("locations for mac %s with ssid %s and signal strength %s\n" % (result['mac'], result['essid'], result['signal_level_dBm']))
-            printToConsole(str(locations) + '\n')
-        else:
-            print("locations for mac %s with ssid %s and signal strength %s" % (result['mac'], result['essid'], result['signal_level_dBm']))
-            print(locations)
+        if debug_mode:
+            if gui:
+                printToConsole("locations for mac %s with ssid %s and signal strength %s\n" % (result['mac'], result['essid'], result['signal_level_dBm']))
+                printToConsole(str(locations) + '\n')
+            else:
+                print("locations for mac %s with ssid %s and signal strength %s" % (result['mac'], result['essid'], result['signal_level_dBm']))
+                print(locations)
         for item in locations:
             location = item[0]
             if location in possible_locations:
                 possible_locations[location] += 1
             else:
                 possible_locations[location] = 1
-
-    if gui:
-        printToConsole('Locations counts - ' + str(possible_locations) + '\n')
-    else:
-        print(possible_locations)
+    if debug_mode:
+        if gui:
+            printToConsole('Locations counts - ' + str(possible_locations) + '\n')
+        else:
+            print(possible_locations)
 
     #calculate percentages
     for key, value in possible_locations.items():
         percentages[key] = str(round(value / len(scanResults) * 100, 2)) + '%'
-
-    if gui:
-        printToConsole('Likelihood percentages - ' + str(percentages) + '\n')
-    else:
-        print(percentages)
+    if debug_mode:
+        if gui:
+            printToConsole('Likelihood percentages - ' + str(percentages) + '\n')
+        else:
+            print(percentages)
     if possible_locations:
         if gui:
             printToConsole('Your current location is most probably ' + str(getMaxValueKey(possible_locations)) + '\n')
@@ -83,7 +84,13 @@ def usesExternalAdapter():
         exit()
     return answer
 
-def locateWithoutGui(interface, with_adapter):
+def useDebugMode():
+    answer = input('Use debugging mode (yes/no): ')
+    if answer not in ['yes', 'no', 'y', 'n']:
+        exit()
+    return answer
+
+def locateWithoutGui(interface, with_adapter, debug_mode=False):
     global cnx, use_database
     db_config = {
         'user': settings.USERNAME,
@@ -99,18 +106,19 @@ def locateWithoutGui(interface, with_adapter):
         print('Terminating...')
         exit()
 
-    findLocation(interface, with_adapter, settings.SUDO_PW)
+    findLocation(interface, with_adapter, settings.SUDO_PW, debug_mode=debug_mode)
 
     if cnx:
         cnx.close()
 
-def locateWithGui(database_connection, interface, with_adapter, sudo_pw):
+def locateWithGui(database_connection, interface, with_adapter, sudo_pw, debug):
     global cnx
     cnx = database_connection
-    findLocation(interface, with_adapter, sudo_pw, gui=True)
+    findLocation(interface, with_adapter, sudo_pw, gui=True, debug_mode=debug)
 
 if __name__ == "__main__":
     yes_no_dict = {'yes': True, 'y': True, 'no': False, 'n': False}
     interface = getInterface()
     uses_external_adapter = yes_no_dict[usesExternalAdapter()]
-    locateWithoutGui(interface, uses_external_adapter)
+    use_debug = yes_no_dict[useDebugMode()]
+    locateWithoutGui(interface, uses_external_adapter, debug_mode=use_debug)

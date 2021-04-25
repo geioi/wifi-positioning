@@ -200,7 +200,7 @@ def startLocating():
         return
     if locating_interface_dropdown.get():
         clearConsoleArea()
-        locateWithGui(database_connection=db_conn, interface=locating_interface_dropdown.get(), with_adapter=locating_is_adapter.get(), sudo_pw=sudo_pw.get())
+        locateWithGui(database_connection=db_conn, interface=locating_interface_dropdown.get(), with_adapter=locating_is_adapter.get(), sudo_pw=sudo_pw.get(), debug=debug_mode.get())
     else:
         printToConsole('interface is not set\n')
     db_conn.close()
@@ -347,7 +347,10 @@ locating_is_adapter = tk.IntVar()
 Checkbutton(locating_tab, text="Is an external adapter?", variable=locating_is_adapter).grid(row=1, column=1)
 
 start_locating_btn = Button(locating_tab, text='Locate', command=startLocating)
-start_locating_btn.grid(row=2, column=1)
+start_locating_btn.grid(row=3, column=1)
+
+debug_mode = tk.IntVar()
+Checkbutton(locating_tab, text="Enable debugging mode", variable=debug_mode).grid(row=2, column=1)
 
 if settings.USERNAME:
     user.insert(0, settings.USERNAME)
