@@ -503,7 +503,9 @@ def collectWithGui(database_connection, building, room, floor, roomSize, specifi
         use_database = True
     else:
         use_database = False
-    packet_count = iw_scanner.determinePacketCount(internal_interface, sudo_pw)
+    packet_count = None
+    if method == 'live':
+        packet_count = iw_scanner.determinePacketCount(internal_interface, sudo_pw)
     abort_command = initMethod(building, room, floor, roomSize, specific_location, method, fileName, packet_count, interface, gui, sudo_pw, internal_adapter_only=internal_adapter_only, internal_interface=internal_interface)
     if abort_command:
         return
