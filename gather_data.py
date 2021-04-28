@@ -387,7 +387,7 @@ def getFloor():
     print('Floor can only be in a form of digit')
     return getFloor()
 
-def getRoom(building=None, possible_locations=None, confirm=False, last_choice=None):
+def getRoom(building=None, possible_locations=None, confirm=False, last_choice=None, external_adapter = False):
     global cnx
     room = input('[?] Room name: ')
     if room == '' and not confirm:
@@ -397,11 +397,18 @@ def getRoom(building=None, possible_locations=None, confirm=False, last_choice=N
     elif room != '' and confirm and room in possible_locations:
         return room
     if cnx:
-        cursor = cnx.cursor(buffered=True)
-        cursor.execute('SELECT DISTINCT location '
-                       'FROM place '
-                       'WHERE building=' + '"' + building + '" '
-                       'AND levenshtein("' + room + '", location) < 3')
+        if external_adapter:
+            cursor = cnx.cursor(buffered=True)
+            cursor.execute('SELECT DISTINCT location '
+                           'FROM place '
+                           'WHERE building=' + '"' + building + '" '
+                           'AND levenshtein("' + room + '", location) < 3')
+        else:
+            cursor = cnx.cursor(buffered=True)
+            cursor.execute('SELECT DISTINCT location '
+                           'FROM place_without_adapter '
+                           'WHERE building=' + '"' + building + '" '
+                           'AND levenshtein("' + room + '", location) < 3')
         locations = cursor.fetchall()
         locations = [location[0] for location in locations]
 
@@ -410,7 +417,7 @@ def getRoom(building=None, possible_locations=None, confirm=False, last_choice=N
         elif locations:
             print('Rooms with similar names found: ' + str(locations))
             print('Press enter again to confirm your current choice. Or enter the name from the given options you would like to use.')
-            return getRoom(building, possible_locations=locations, confirm=True, last_choice=room)
+            return getRoom(building, possible_locations=locations, confirm=True, last_choice=room, external_adapter=external_adapter)
     return room
 
 def getRoomSize(allowed_sizes=None):
@@ -439,15 +446,6 @@ def getSpecificLocation(method):
 def askForInput():
     yes_no_dict = {'yes': True, 'y': True, 'no': False, 'n': False}
     method = getMethod()
-    building = getBuilding()
-    floor = getFloor()
-    room = getRoom(building)
-    specific_location = getSpecificLocation(method)
-    if not specific_location:
-        roomSize = getRoomSize()
-    else:
-        roomSize = None
-
     interface = None
     is_external_interface = None
     internal_adapter = None
@@ -462,6 +460,14 @@ def askForInput():
             internal_adapter = interface
     else:
         fileName = getFileName()
+    building = getBuilding()
+    floor = getFloor()
+    room = getRoom(building, external_adapter=is_external_interface)
+    specific_location = getSpecificLocation(method)
+    if not specific_location:
+        roomSize = getRoomSize()
+    else:
+        roomSize = None
 
     return method, building, floor, room, roomSize, specific_location, interface, fileName, internal_adapter, not is_external_interface
 
