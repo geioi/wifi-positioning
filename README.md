@@ -15,7 +15,7 @@ The very first thing to do is either to clone this repository or [Download v1.0 
 There are three different ways to run these scripts: 
 
 ###**1. Using Docker**  
-1. Download the docker image from [Dropbox link](https://www.dropbox.com/s/ng933r7go6sdoms/wifi_positioning.tar.gz?dl=0) (~400MB size - not included in repository files to keep it from becoming unnecessarily bloated)   
+1. Download the docker image from [Dropbox link](https://www.dropbox.com/s/ng933r7go6sdoms/wifi_positioning.tar.gz?dl=1) (~400MB size - not included in repository files to keep it from becoming unnecessarily bloated)   
 2. Place the downloaded tar file into repository root folder where the python files are (**Do not extract the tar file**)
 3. If you do not have Docker already installed in your system, run `./bin/install_docker.sh`, otherwise skip this step
 4. Run `./bin/run_inside_docker.sh`
