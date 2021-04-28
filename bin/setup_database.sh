@@ -32,6 +32,11 @@ if [ -f /root/.my.cnf ]; then
 	do
 		mysql -u${username} -p${userpass} $db_dump < wifi_positioning_empty_dump.sql
 	done
+
+	for db in wifi_positioning_delta wifi_positioning_test1 wifi_positioning_test2 wifi_positioning_test3
+	do
+		mysql -u${username} -p${userpass} $db < levenshtein.sql
+	done
 	
 	echo "You're good now :)"
 	exit
@@ -65,6 +70,11 @@ else
 	for db_dump in wifi_positioning_test1 wifi_positioning_test2 wifi_positioning_test3
 	do
 		mysql -u${username} -p${userpass} $db_dump < wifi_positioning_empty_dump.sql
+	done
+
+	for db in wifi_positioning_delta wifi_positioning_test1 wifi_positioning_test2 wifi_positioning_test3
+	do
+		mysql -u${username} -p${userpass} $db < levenshtein.sql
 	done
 	
 	echo "You're good now :)"
