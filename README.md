@@ -60,7 +60,7 @@ wifi_positioning_test3 (empty, write, delete rights)
 2. Run `./bin/setup_database.sh` to download mysql-server (if it doesn't exist already) and setup the necessary tables in database. The script asks for a new user to be created with your own chosen name and password which will be used later in settings.py file. If you already have the databases set up from before, you can skip this step.    
 3. Edit the settings.py file with the following information:  
    **Database user:** database user entered in 2. step, or your own if set it up before.  
-   **Database password:** Database password for the user created in 2. step, or your own if set it up before
+   **Database password:** Database password for the user created in 2. step, or your own if set it up before  
    **Database host:** 127.0.0.1 (or localhost)   
    **Database:** See possible tables for this method below  
    **Sudo password:** The current host machine sudo password  
