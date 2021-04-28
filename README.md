@@ -14,7 +14,7 @@ The very first thing to do is either to clone this repository or [Download v1.0 
 
 There are three different ways to run these scripts: 
 
-###**1. Using Docker**  
+###1. Using Docker  
 1. Download the docker image from [Dropbox link](https://www.dropbox.com/s/ng933r7go6sdoms/wifi_positioning.tar.gz?dl=1) (~400MB size - not included in repository files to keep it from becoming unnecessarily bloated)   
 2. Place the downloaded tar file into repository root folder where the python files are (**Do not extract the tar file**)
 3. If you do not have Docker already installed in your system, run `./bin/install_docker.sh`, otherwise skip this step
@@ -38,7 +38,7 @@ wifi_positioning_test1 (empty)
 wifi_positioning_test2 (empty)  
 wifi_positioning_test3 (empty)   
 
-###**2. Using external database**
+###2. Using external database
 This method uses an external database that is hosted on Amazon Web Services (AWS) RDS. Due to this being publicly available at all times, some of the tables may have additional data in them, added by users.
 1. Run `./bin/setup.sh` to download all the necessary packages to run the scripts
 2. Edit the settings.py file with the following information:  
@@ -55,7 +55,7 @@ wifi_positioning_test1 (empty, write, delete rights)
 wifi_positioning_test2 (empty, write, delete rights)  
 wifi_positioning_test3 (empty, write, delete rights) 
 
-###**3. Using local database**
+###3. Using local database
 1. Run `./bin/setup.sh` to download all the necessary packages to run the scripts
 2. Run `./bin/setup_database.sh` to download mysql-server (if it doesn't exist already) and setup the necessary tables in database. The script asks for a new user to be created with your own chosen name and password which will be used later in settings.py file. If you already have the databases set up from before, you can skip this step.    
 3. Edit the settings.py file with the following information:  
