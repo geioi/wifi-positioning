@@ -38,22 +38,22 @@ wifi_positioning_test1 (empty)
 wifi_positioning_test2 (empty)  
 wifi_positioning_test3 (empty)   
 
-### 2. Using external database
-This method uses an external database that is hosted on Amazon Web Services (AWS) RDS. Due to this being publicly available at all times, some of the tables may have additional data in them, added by users.
-1. Run `./bin/setup.sh` to download all the necessary packages to run the scripts
-2. Edit the settings.py file with the following information:  
+### ~~2. Using external database~~ (Due to AWS now requiring money for hosting the database, this option has been disabled)
+~~This method uses an external database that is hosted on Amazon Web Services (AWS) RDS. Due to this being publicly available at all times, some of the tables may have additional data in them, added by users.
+1. ~~Run `./bin/setup.sh` to download all the necessary packages to run the scripts
+2. ~~Edit the settings.py file with the following information:  
    **Database user:** user_for_testing  
    **Database password:** notsosafepassword  
    **Database host:** wifi-positioning-db.cdlluc1on8zb.us-east-2.rds.amazonaws.com   
    **Database:** See possible tables for this method below  
    **Sudo password:** The current host machine sudo password
-3. Finally, run either `python3 gui.py` to open the graphical user interface; `python3 gather_data.py` to run data gathering script from command line; or `python3 locator.py` to run the locating script from command line
+3. ~~Finally, run either `python3 gui.py` to open the graphical user interface; `python3 gather_data.py` to run data gathering script from command line; or `python3 locator.py` to run the locating script from command line
 
-**The available tables that can be used in external database are**  
+**~~The available tables that can be used in external database are**  
 wifi_positioning_delta (delta data, read-only)  
 wifi_positioning_test1 (empty, write, delete rights)  
 wifi_positioning_test2 (empty, write, delete rights)  
-wifi_positioning_test3 (empty, write, delete rights) 
+wifi_positioning_test3 (empty, write, delete rights)~~ 
 
 ### 3. Using local database
 1. Run `./bin/setup.sh` to download all the necessary packages to run the scripts
